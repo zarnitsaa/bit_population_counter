@@ -1,0 +1,118 @@
+class RAND;
+	rand logic [WIDTH:0] rand_queue [$:CNT];
+endclass
+
+timescale 1ps/1ps; //не важно для функциональной симуляции
+
+module testbench_bit_population_counter;
+
+parameter int CLK=20; //period clk
+parameter int WIDTH=20; //разрядность данных
+parameter int CNT=20; //how many numbers in queque
+
+logic clk_i_ext;
+logic srst_i_ext;
+logic data_i_ext;
+logic data_val_i_ext;
+logic data_o_ext;
+logic data_val_o_ext;
+
+//instantiate module inside testbench
+
+bit_population_counter #(
+) bit_population_inst (
+.clk_i (clk_i_ext),
+.srst_i (srst_i_ext),
+.data_i (data_i_ext),
+.data_val_i (data_val_i_ext),
+.data_o (data_o_ext),
+.data_val_o (data_val_o_ext)
+);
+
+initial//задание тактовой частоты
+begin
+forever begin
+#(CLK/2);
+clk_i_ext=~clk_i_ext;
+end
+end
+
+task sync_rst();//синхронный сброс
+@(posedge clk_i_ext);
+srst_i_ext<=1'b1;
+@(posedge clk_i_ext);
+srst_i_ext<=1'b0;
+endtask;
+
+initial 
+begin
+    RAND rand_queue = new;
+    rand_queue.randomize();
+end
+//это первая идея по созданию очереди, не удаляю на всякий
+//logic [WIDTH:0] rand_queue [$:CNT];//создание и заполнение очереди из CNT элементов
+//foreach (rand_queue [i])
+//rand_queue.randomize() with  [i]=ra
+//rand_queue [i]=$urandom;//generates a 32-bit unsigned number
+
+task input_stumulus (input rand_queue);//принимает очередь и генерирует входное воздействие
+	begin
+	@(posedge clk_i_ext)
+		begin
+		for (i=0; i<=CNT; i++)
+		data_i_ext[i]=rand_queue[i]
+		end
+	end
+endtask
+
+logic [WIDTH:0] output_queue [$:CNT];
+
+task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);//следит за data_val_o_ext и записывает выходной сигнал в очередь
+	begin
+	@(posedge clk_i_ext)
+		if(data_val_o_ext)
+			begin
+			for (i=0; i<=CNT; i++)
+			output_queue[i]=data_o_ext;
+			end 
+	end
+endtask
+
+task check (input rand_queue, input output_queue);
+	begin
+	@(posedge clk_i_ext)
+			begin
+			for (i=0; i<=CNT; i++)
+				begin
+				//нужно брать одно из значений rand_queue[i] и с ним что-то сделать, чтобы потом сравнивать
+				if (      ==output_queue[i])//сравниваем обработанное значение rand_queue[i] с тем, что на выходе
+				//как показать, что все работает хорошо? 
+				else //как показать, что все плохо?
+				end 
+			end 
+	
+	end
+endtask
+
+
+
+initial
+begin
+@(posedge clk_i_ext)
+data_val_i_ext<=1'b1;
+input_stumulus (input rand_queue);
+output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
+check (input rand_queue, input output_queue)
+sync_rst();
+
+@(posedge clk_i_ext)
+data_val_i_ext<=1'b0;
+input_stumulus (input rand_queue);
+output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
+check (input rand_queue, input output_queue)
+sync_rst();
+
+
+$stop();
+end
+endmodule
