@@ -2,12 +2,12 @@ class RAND;
 	rand logic [WIDTH:0] rand_queue [$:CNT];
 endclass
 
-timescale 1ps/1ps; //не важно для функциональной симуляции
+timescale 1ps/1ps; 
 
 module testbench_bit_population_counter;
 
 parameter int CLK=20; //period clk
-parameter int WIDTH=20; //разрядность данных
+parameter int WIDTH=20; 
 parameter int CNT=20; //how many numbers in queque
 
 logic clk_i_ext;
@@ -29,7 +29,7 @@ bit_population_counter #(
 .data_val_o (data_val_o_ext)
 );
 
-initial//задание тактовой частоты
+initial
 begin
 forever begin
 #(CLK/2);
@@ -37,7 +37,7 @@ clk_i_ext=~clk_i_ext;
 end
 end
 
-task sync_rst();//синхронный сброс
+task sync_rst();
 @(posedge clk_i_ext);
 srst_i_ext<=1'b1;
 @(posedge clk_i_ext);
@@ -49,13 +49,9 @@ begin
     RAND rand_queue = new;
     rand_queue.randomize();
 end
-//это первая идея по созданию очереди, не удаляю на всякий
-//logic [WIDTH:0] rand_queue [$:CNT];//создание и заполнение очереди из CNT элементов
-//foreach (rand_queue [i])
-//rand_queue.randomize() with  [i]=ra
-//rand_queue [i]=$urandom;//generates a 32-bit unsigned number
 
-task input_stumulus (input rand_queue);//принимает очередь и генерирует входное воздействие
+
+task input_stumulus (input rand_queue);
 	begin
 	@(posedge clk_i_ext)
 		begin
@@ -67,7 +63,7 @@ endtask
 
 logic [WIDTH:0] output_queue [$:CNT];
 
-task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);//следит за data_val_o_ext и записывает выходной сигнал в очередь
+task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
 	begin
 	@(posedge clk_i_ext)
 		if(data_val_o_ext)
@@ -84,10 +80,10 @@ task check (input rand_queue, input output_queue);
 			begin
 			for (i=0; i<=CNT; i++)
 				begin
-				//нужно брать одно из значений rand_queue[i] и с ним что-то сделать, чтобы потом сравнивать
-				if (      ==output_queue[i])//сравниваем обработанное значение rand_queue[i] с тем, что на выходе
-				//как показать, что все работает хорошо? 
-				else //как показать, что все плохо?
+				//one of the rand_queue needs to be taken in order to obtain something to compare with the output
+				if (      ==output_queue[i])//compare rand_queue[i] with the output signal
+				//how can it show that everything works fine? 
+				else //how can it show that nothing works correctly?
 				end 
 			end 
 	
@@ -102,14 +98,14 @@ begin
 data_val_i_ext<=1'b1;
 input_stumulus (input rand_queue);
 output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
-check (input rand_queue, input output_queue)
+check (input rand_queue, input output_queue);
 sync_rst();
 
 @(posedge clk_i_ext)
 data_val_i_ext<=1'b0;
 input_stumulus (input rand_queue);
 output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
-check (input rand_queue, input output_queue)
+check (input rand_queue, input output_queue);
 sync_rst();
 
 
