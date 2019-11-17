@@ -24,8 +24,6 @@ begin
 			//data_o<=data_o+data_i[width];
 			width=width+data_i[i];
 		end 
-	else
-		data_val_o<=1'b0;
 end
 
 always_ff @(posedge clk_i)
