@@ -2,12 +2,12 @@ class RAND;
 	rand logic [WIDTH:0] rand_queue [$:CNT];
 endclass
 
-timescale 1ps/1ps; 
+timescale 1ps/1ps; //не важно для функциональной симуляции
 
 module testbench_bit_population_counter;
 
 parameter int CLK=20; //period clk
-parameter int WIDTH=20; 
+parameter int WIDTH=20; //разрядность данных
 parameter int CNT=20; //how many numbers in queque
 
 logic clk_i_ext;
@@ -21,7 +21,7 @@ logic data_val_o_ext;
 
 bit_population_counter #(
 ) bit_population_inst (
-.clk_i (clk_i_ext),
+.clk_i (clk_i_ext)
 .srst_i (srst_i_ext),
 .data_i (data_i_ext),
 .data_val_i (data_val_i_ext),
@@ -29,7 +29,7 @@ bit_population_counter #(
 .data_val_o (data_val_o_ext)
 );
 
-initial
+initial//задание тактовой частоты
 begin
 forever begin
 #(CLK/2);
@@ -37,7 +37,7 @@ clk_i_ext=~clk_i_ext;
 end
 end
 
-task sync_rst();
+task sync_rst();//синхронный сброс
 @(posedge clk_i_ext);
 srst_i_ext<=1'b1;
 @(posedge clk_i_ext);
@@ -50,26 +50,27 @@ begin
     rand_queue.randomize();
 end
 
+logic [WIDTH:0] rand_queue [$:CNT];//создание и заполнение очереди из CNT элементов
+rand_queue=new;
+foreach (rand_queue [i]=$urandom);//generates a 32-bit unsigned number
 
-task input_stumulus (input rand_queue);
+task input_stumulus (input rand_queue);//принимает очередь и генерирует входное воздействие
 	begin
-	@(posedge clk_i_ext)
-		begin
 		for (i=0; i<=CNT; i++)
-		data_i_ext[i]=rand_queue[i]
-		end
+		@(posedge clk_i_ext)
+		data_i_ext[i]<=rand_queue[i]
 	end
 endtask
 
 logic [WIDTH:0] output_queue [$:CNT];
 
-task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
+task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);//следит за data_val_o_ext и записывает выходной сигнал в очередь
 	begin
-	@(posedge clk_i_ext)
-		if(data_val_o_ext)
 			begin
 			for (i=0; i<=CNT; i++)
-			output_queue[i]=data_o_ext;
+			wait (!data_val_o)
+			@(posedge clk_i_ext)
+			output_queue[i]<=data_o_ext;
 			end 
 	end
 endtask
@@ -80,10 +81,8 @@ task check (input rand_queue, input output_queue);
 			begin
 			for (i=0; i<=CNT; i++)
 				begin
-				//one of the rand_queue needs to be taken in order to obtain something to compare with the output
-				if (      ==output_queue[i])//compare rand_queue[i] with the output signal
-				//how can it show that everything works fine? 
-				else //how can it show that nothing works correctly?
+				assert ($countbits(rand_queue[i],'1)==output_queue[i] 
+				$dispay ("OK") else $error ("It's gone wrong");
 				end 
 			end 
 	
@@ -95,18 +94,15 @@ endtask
 initial
 begin
 @(posedge clk_i_ext)
-data_val_i_ext<=1'b1;
-input_stumulus (input rand_queue);
-output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
-check (input rand_queue, input output_queue);
+fork
+	begin
+	input_stumulus (rand_queue);
+	output_stumulus (data_o_ext, data_val_o_ext,output_queue);
+	end
+join
+check (rand_queue, output_queue)
 sync_rst();
 
-@(posedge clk_i_ext)
-data_val_i_ext<=1'b0;
-input_stumulus (input rand_queue);
-output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);
-check (input rand_queue, input output_queue);
-sync_rst();
 
 
 $stop();
