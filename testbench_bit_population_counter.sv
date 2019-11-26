@@ -1,11 +1,11 @@
-
-timescale 1ps/1ps; //не важно для функциональной симуляции
+timescale 1ps/1ps; //
 
 module testbench_bit_population_counter;
 
 parameter int CLK=20; //period clk
-parameter int WIDTH=20; //разрядность данных
+parameter int WIDTH=20; //
 parameter int CNT=20; //how many numbers in queque
+parameter int VAL=30; //period of validity of input signal
 
 logic clk_i_ext;
 logic srst_i_ext;
@@ -26,7 +26,7 @@ bit_population_counter #(
 .data_val_o (data_val_o_ext)
 );
 
-initial//задание тактовой частоты
+initial//
 begin
 forever begin
 #(CLK/2);
@@ -34,39 +34,35 @@ clk_i_ext=~clk_i_ext;
 end
 end
 
-task sync_rst();//синхронный сброс
+task sync_rst();//
 @(posedge clk_i_ext);
 srst_i_ext<=1'b1;
 @(posedge clk_i_ext);
 srst_i_ext<=1'b0;
 endtask;
 
-initial 
-begin
-    RAND rand_queue = new;
-    rand_queue.randomize();
-end
-
-logic [WIDTH:0] rand_queue [$:CNT];//создание и заполнение очереди из CNT элементов
+logic [WIDTH:0] rand_queue [$:CNT];//
 rand_queue=new;
 foreach (rand_queue [i]=$urandom);//generates a 32-bit unsigned number
 
-task input_stumulus (input rand_queue);//принимает очередь и генерирует входное воздействие
+task input_stumulus (input rand_queue);//
 	begin
-		for (i=0; i<=CNT; i++)
-		@(posedge clk_i_ext)
-		data_i_ext[i]<=rand_queue[i]
+			for (i=0; i<=CNT; i++)
+			@(posedge clk_i_ext)
+			data_val_i<=1'b1;
+			data_i_ext[i]<=rand_queue[i]
+ 			end
 	end
 endtask
 
 logic [WIDTH:0] output_queue [$:CNT];
 
-task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);//следит за data_val_o_ext и записывает выходной сигнал в очередь
+task output_stumulus (input data_o_ext, input data_val_o_ext, output output_queue);//������ �� data_val_o_ext � ���������� �������� ������ � �������
 	begin
 			begin
 			for (i=0; i<=CNT; i++)
-			wait (!data_val_o)
 			@(posedge clk_i_ext)
+			data_val_o_ext<=1'b1;
 			output_queue[i]<=data_o_ext;
 			end 
 	end
